@@ -1,4 +1,4 @@
-var EventCenter = {
+ var EventCenter = {
 	on: function(type,handler){
 		$(document).on(type,handler)
 	},
@@ -8,96 +8,119 @@ var EventCenter = {
 }
 
 var Footer = {
+	//初始化页面
 	init: function(){
 		this.$footer = $('footer');
 		this.$ul = this.$footer.find('ul');
 		this.$box = this.$footer.find('.box');
 		this.$leftBtn = this.$footer.find('.fa-chevron-left');
 		this.$rightBtn = this.$footer.find('.fa-chevron-right');
-		this.isToEnd = false;
+		this.isToEnd = false;  //判断点击轮播是不是到最后了
 		this.isToStart = true;
-		this.isAnimate = false;
+		this.isAnimate = false;  //状态锁
 
 		this.bind();
 		this.render();
+		EventCenter.fire('select-albumn',)
 	},
+	//绑定事件
 	bind: function(){
 		var _this = this;
-		// $(window).resize(function(){
-		// 	_this.setStyle();
-		// })
+
+        //点击右边的icon 往左移动
 		this.$rightBtn.on('click',function(){
 			if(_this.isAnimate) return;
 			var itemWidth = _this.$box.find('li').outerWidth(true);
 			var rowCount = Math.floor(_this.$box.width()/itemWidth);
-
+            
+            //给个判断条件
 			if(!_this.isToEnd){
+				//状态锁
 				_this.isAnimate = true;
+				//自定义动画
 				_this.$ul.animate({
 	               left: '-=' + itemWidth * rowCount
 				}, 400, function(){
+					//状态锁
 					_this.isAnimate = false;
 					_this.isToStart = false;
+					//如果盒子的宽度 + 往左偏移的宽度 >= ul的宽度，则不再移动
 					if(_this.$box.width() - parseInt(_this.$ul.css('left')) >= _this.$ul.width()){
 						_this.isToEnd = true;					    
 					}
 			    })
 			}
 		})
-
+        
+        //点击左按钮往右移动
 		this.$leftBtn.on('click',function(){
 			if(_this.isAnimate) return;
 			var itemWidth = _this.$box.find('li').outerWidth(true);
 			var rowCount = Math.floor(_this.$box.width()/itemWidth);
-
+            
 			if(!_this.isToStart){
 				_this.isAnimate = true;
+				//自定义动画
 				_this.$ul.animate({
 					left: '+=' + itemWidth * rowCount
 				},400,function(){
 					_this.isAnimate = false;
 					_this.isToEnd = false;
+					//如果往左偏移的宽度为0，则不再往右移动
 					if(parseInt(_this.$ul.css('left')) >= 0){
 						_this.isToStart = true;
 					}
 				})
 			}
 		})
-
+        
+        //点击后的状态 运用事件代理
 		this.$footer.on('click','li',function(){
 			$(this).addClass('active')
 			       .siblings().removeClass('active');
-            // console.log($(this))
+            
+            //自定义事件 把类别和类名 name 放进去
 			EventCenter.fire('select-albumn',{
 				channelId: $(this).attr('data-channel-id'),
 				channelName: $(this).attr('data-channel-name')
 			})
 		})
 	},
+    
+    //渲染页面
 	render: function(){
         var _this = this;
         $.getJSON('//jirenguapi.applinzi.com/fm/getChannels.php')
          .done(function(ret){
          	console.log(ret);
+         	//渲染数据
 	        _this.renderFooter(ret.channels);
 	      }).fail(function(){
 	        console.log('err');
 	      })
 	},
+
+	//数据放到页面上
 	renderFooter: function(channels){
 		console.log(channels);
 		var html = '';
 		channels.forEach(function(channel){
+			//拼接字符串
 			html += '<li data-channel-id=' + channel.channel_id + ' data-channel-name='+ channel.name +'>'
 			+' <div class="cover" style="background-image:url(' + channel.cover_small + ')"></div>'
 			+' <h3>' + channel.name + '</h3>'
 			+'</li>';
 		})
 		this.$ul.html(html);
+		//设置样式
 		this.setStyle();
 	},
+
+	//设置样式
 	setStyle: function(){
+		//多少个li
 		var count = this.$footer.find('li').length;
+		//每个li的宽度 包括外边框
 		var width = this.$footer.find('li').outerWidth(true);
 		this.$ul.css({
 			width: count * width + 'px'
@@ -113,6 +136,7 @@ var Fm = {
        this.audio.autoplay = true;
 
        this.bind();
+       this.loadMusic();
 	},
 	bind: function(){
 	    var _this = this;
@@ -146,6 +170,16 @@ var Fm = {
 		this.audio.addEventListener('pause',function(){
 			clearInterval(_this.statusClock);
 		})
+
+		this.$container.find('.area-bar .bar').on('click',function(e){
+			console.log($(this).outerWidth(),e.clientX,getComputedStyle(this).width)
+			var percent = e.offsetX/$(this).outerWidth();
+			_this.audio.currentTime = percent * _this.audio.duration;
+		})
+
+		this.audio.onended = function(){
+			_this.loadMusic();
+		}
 	},
 	loadMusic: function(callback){
 		var _this = this;

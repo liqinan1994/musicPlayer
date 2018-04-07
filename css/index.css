@@ -167,6 +167,8 @@ footer .box {
 	overflow: hidden;
 	height: 24vh;
 }
+
+/*配合js点击事件设置 ul绝对定位*/
 footer ul {
 	position: absolute;
 	left: 0;
